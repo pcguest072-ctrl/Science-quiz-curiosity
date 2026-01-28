@@ -1,9 +1,16 @@
 import streamlit as st
+import random
 import pandas as pd
 import os
 
-st.set_page_config(page_title="Science Quiz - Curiosity", page_icon="🧪")
+# ------------------ PAGE CONFIG ------------------
+st.set_page_config(
+    page_title="Class 8 Science Quiz – Curiosity 2025",
+    page_icon="🧪",
+    layout="centered"
+)
 
+# ------------------ LEADERBOARD ------------------
 LEADERBOARD_FILE = "leaderboard.csv"
 
 def save_score(name, score):
@@ -11,70 +18,132 @@ def save_score(name, score):
         df = pd.read_csv(LEADERBOARD_FILE)
     else:
         df = pd.DataFrame(columns=["Name", "Score"])
-    df.loc[len(df)] = [name, score]
+
+    df = pd.concat([df, pd.DataFrame([[name, score]], columns=["Name", "Score"])])
     df.to_csv(LEADERBOARD_FILE, index=False)
 
-def show_leaderboard():
+# ------------------ QUESTIONS ------------------
+questions = [
+    {
+        "q": "Scientific investigation begins with:",
+        "options": ["Observation", "Conclusion", "Guess", "Result"],
+        "ans": "Observation"
+    },
+    {
+        "q": "Which tool is used to see microorganisms?",
+        "options": ["Microscope", "Telescope", "Binoculars", "Magnifying glass"],
+        "ans": "Microscope"
+    },
+    {
+        "q": "Balanced diet contains:",
+        "options": ["Only fruits", "Only rice", "All nutrients", "Only milk"],
+        "ans": "All nutrients"
+    },
+    {
+        "q": "Vitamin C deficiency causes:",
+        "options": ["Rickets", "Scurvy", "Anaemia", "Beriberi"],
+        "ans": "Scurvy"
+    },
+    {
+        "q": "Microorganisms live in:",
+        "options": ["Air", "Water", "Soil", "All of these"],
+        "ans": "All of these"
+    },
+]
+
+random.shuffle(questions)
+
+# ------------------ SESSION STATE ------------------
+if "page" not in st.session_state:
+    st.session_state.page = "start"
+    st.session_state.q_index = 0
+    st.session_state.score = 0
+    st.session_state.name = ""
+
+# ------------------ START PAGE ------------------
+if st.session_state.page == "start":
+    st.markdown(
+        """
+        <h1 style='text-align:center;'>🧪 Class 8 Science Quiz</h1>
+        <h3 style='text-align:center;'>Curiosity 2025</h3>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.write("👋 Welcome young scientist!")
+    st.write("📚 NCERT Based • 🎮 Game Style • 🧠 Learn with Fun")
+
+    name = st.text_input("Enter your name to start")
+
+    if st.button("🚀 Start Quiz"):
+        if name.strip() == "":
+            st.warning("Please enter your name")
+        else:
+            st.session_state.name = name
+            st.session_state.page = "quiz"
+            st.rerun()
+
+# ------------------ QUIZ PAGE ------------------
+elif st.session_state.page == "quiz":
+    q = questions[st.session_state.q_index]
+
+    st.progress((st.session_state.q_index) / len(questions))
+
+    st.markdown(
+        """
+        <div style="padding:20px;border-radius:15px;background:#1f2933;">
+        <h3 style="color:#60a5fa;">🧠 Question Time</h3>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.subheader(q["q"])
+    choice = st.radio("Choose your answer:", q["options"])
+
+    if st.button("✅ Submit Answer"):
+        if choice == q["ans"]:
+            st.session_state.score += 1
+            st.success("Correct! Great job 👏")
+            st.balloons()
+        else:
+            st.error(f"Wrong! Correct answer: {q['ans']}")
+
+        st.session_state.q_index += 1
+
+        if st.session_state.q_index >= len(questions):
+            st.session_state.page = "result"
+
+        st.rerun()
+
+# ------------------ RESULT PAGE ------------------
+elif st.session_state.page == "result":
+    score = st.session_state.score
+    total = len(questions)
+
+    save_score(st.session_state.name, score)
+
+    st.markdown("## 🎉 Quiz Completed!")
+
+    st.metric("Your Score", f"{score} / {total}")
+
+    if score == total:
+        st.success("🏆 PERFECT SCORE! You are a Science Champion!")
+        st.balloons()
+    elif score >= total * 0.6:
+        st.success("👏 Great job! Keep learning!")
+    else:
+        st.warning("🙂 Good effort! Try again to improve.")
+
+    st.subheader("🏆 Science Champions Hall of Fame")
+
     if os.path.exists(LEADERBOARD_FILE):
         df = pd.read_csv(LEADERBOARD_FILE)
         df = df.sort_values(by="Score", ascending=False)
-        st.subheader("🏆 Leaderboard")
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.info("No leaderboard data yet.")
+        st.dataframe(df.head(10), use_container_width=True)
 
-questions = [
-    {"q": "Plants prepare their food by?", "options": ["Respiration", "Photosynthesis", "Digestion", "Transpiration"], "answer": "Photosynthesis"},
-    {"q": "Force is measured in?", "options": ["Joule", "Pascal", "Newton", "Watt"], "answer": "Newton"},
-    {"q": "Human heart has how many chambers?", "options": ["2", "3", "4", "5"], "answer": "4"},
-    {"q": "The boiling point of water is?", "options": ["50°C", "100°C", "150°C", "0°C"], "answer": "100°C"},
-    {"q": "True or False: Air has weight", "options": ["True", "False"], "answer": "True"}
-]
-
-if "page" not in st.session_state:
-    st.session_state.page = "start"
-if "score" not in st.session_state:
-    st.session_state.score = 0
-if "q_index" not in st.session_state:
-    st.session_state.q_index = 0
-
-if st.session_state.page == "start":
-    st.title("🧪 Science Quiz – Curiosity")
-    name = st.text_input("Enter Student Name")
-    if st.button("Start Quiz"):
-        if name.strip():
-            st.session_state.name = name
-            st.session_state.page = "quiz"
-            st.experimental_rerun()
-        else:
-            st.warning("Please enter your name")
-
-elif st.session_state.page == "quiz":
-    q = questions[st.session_state.q_index]
-    st.subheader(f"Question {st.session_state.q_index + 1}")
-    st.write(q["q"])
-    choice = st.radio("Choose answer:", q["options"])
-    if st.button("Submit"):
-        if choice == q["answer"]:
-            st.success("Correct ✅")
-            st.session_state.score += 1
-        else:
-            st.error(f"Wrong ❌ Correct answer: {q['answer']}")
-        st.session_state.q_index += 1
-        if st.session_state.q_index >= len(questions):
-            st.session_state.page = "result"
-        st.experimental_rerun()
-
-elif st.session_state.page == "result":
-    st.title("📊 Result")
-    total = len(questions)
-    score = st.session_state.score
-    st.write(f"Name: {st.session_state.name}")
-    st.write(f"Score: {score} / {total}")
-    save_score(st.session_state.name, score)
-    show_leaderboard()
-    if st.button("Restart"):
+    if st.button("🔁 Play Again"):
         st.session_state.page = "start"
-        st.session_state.score = 0
         st.session_state.q_index = 0
-        st.experimental_rerun()
+        st.session_state.score = 0
+        st.rerun()
