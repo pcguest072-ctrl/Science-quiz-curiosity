@@ -3,7 +3,7 @@ import random
 import pandas as pd
 import os
 
-# ------------------ PAGE CONFIG ------------------
+# ------------------ PAGE CONFIG -----------------
 st.set_page_config(
     page_title="Class 8 Science Quiz – Curiosity 2025",
     page_icon="🧪",
